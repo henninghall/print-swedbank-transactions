@@ -21,6 +21,7 @@ const queryUntilFound = (query) => new Promise((resolve, reject) => {
 
     const timeout = setTimeout(() => {
         clearInterval(interval)
+        clearTimeout(timeout);
         reject()
     }, 10000)
 
@@ -34,15 +35,44 @@ const queryUntilFound = (query) => new Promise((resolve, reject) => {
     }, 100);
 })
 
+let lastDate, fileName;
+const setFileName = (dateTd) => {
+    const date = dateTd.textContent.trim()
+    const extension = lastDate === date ? '-' + ++numberOfSameDates : (numberOfSameDates = 0, '')
+    const fileName = date + extension;
+    lastDate = date;
+    document.title = fileName
+    console.log(fileName)
+}
+
+const getTrs = async () => {
+    const table = await queryUntilFound(() => getFirstElementByClassName("account-table__table"))
+    const trs = table.getElementsByTagName('tr')
+    const trElements = [...trs].filter(tr => tr.getElementsByTagName('td').length).slice(0, NUMBER_OF_FILES)
+    return trElements
+}
+
+const navigateToTable = async () => {
+    await clickElementWhenExistByClassName("_show-more_btn")
+    await clickElementWhenExistByClassName("swed-button _margins-sm-md swed-button--link")
+    window.scrollTo(0, document.body.scrollHeight);
+}
+
 async function run() {
-    try {
-        await clickElementWhenExistByClassName("_show-more_btn")
-        await clickElementWhenExistByClassName("swed-button _margins-sm-md swed-button--link")
-        await clickElementWhenExistByClassName("account-table__row account-table__row--body _align-start-center _layout-row")
+    await navigateToTable()
+    const trElements = await getTrs()
+
+    for (tr of trElements) {
+        const dateTd = tr.getElementsByTagName('td')[2]
+        if (!dateTd) continue;
+        setFileName(dateTd)
+        dateTd.click()
         await clickElementWhenExistByInnerText("Skriv", "swed-button swed-button--guiding")
-    } catch (error) {
-        console.error(error)
+        await clickElementWhenExistByClassName("swed-button _flex-noshrink _hide-print _paddings-x-lg swed-button--icon")
     }
+
 }
 
 run()
+
+const delay = ms => new Promise(resolve => setTimeout(resolve, ms))
